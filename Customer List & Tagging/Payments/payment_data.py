@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
@@ -57,6 +58,7 @@ def add_payment(customer_id: str, amount: float) -> Dict:
         "customer_id": customer_id,
         "amount": float(amount),
         "status": "unpaid",
+        "payment_date": datetime.now().isoformat(),
     }
 
     payments.append(new_payment)
@@ -83,6 +85,7 @@ def get_unpaid_payment_models() -> List[Payment]:
             customer_id=str(p.get("customer_id", "")),
             amount=float(p.get("amount", 0.0)),
             status=str(p.get("status", "")),
+            payment_date=datetime.fromisoformat(p["payment_date"]) if p.get("payment_date") else datetime.now(),
         )
         for p in get_unpaid_payments()
     ]

@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 
 
 @dataclass
@@ -14,3 +15,4 @@ class Payment:
     customer_id: str
     amount: float
     status: str  # "paid" or "unpaid"
+    payment_date: datetime = field(default_factory=datetime.now)

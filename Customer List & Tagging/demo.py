@@ -9,12 +9,14 @@ from common.models import Payment
 
 
 def _to_payment_models(payment_dicts):
+    from datetime import datetime
     return [
         Payment(
             payment_id=str(p["payment_id"]),
             customer_id=str(p["customer_id"]),
             amount=float(p["amount"]),
             status=str(p["status"]),
+            payment_date=datetime.fromisoformat(p["payment_date"]) if p.get("payment_date") else datetime.now(),
         )
         for p in payment_dicts
     ]
