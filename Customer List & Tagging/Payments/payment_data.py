@@ -1,7 +1,15 @@
 import json
 import os
 import uuid
-from typing import List, Dict
+import sys
+from pathlib import Path
+from typing import Dict, List
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from common.models import Payment
 
 
 PAYMENTS_FILE = os.path.join(
@@ -35,6 +43,8 @@ def _save_payments(payments: List[Dict]) -> None:
 
 def add_payment(customer_id: str, amount: float) -> Dict:
 
+    customer_id = str(customer_id)
+
     payments = _load_payments()
 
     for p in payments:
@@ -54,10 +64,28 @@ def add_payment(customer_id: str, amount: float) -> Dict:
     return new_payment
 
 
+def get_payments_by_customer(customer_id: str) -> List[Dict]:
+    customer_id = str(customer_id)
+    payments = _load_payments()
+    return [p for p in payments if str(p.get("customer_id")) == customer_id]
+
+
 def get_unpaid_payments() -> List[Dict]:
 
     payments = _load_payments()
     return [p for p in payments if p.get("status") == "unpaid"]
+
+
+def get_unpaid_payment_models() -> List[Payment]:
+    return [
+        Payment(
+            payment_id=str(p.get("payment_id", "")),
+            customer_id=str(p.get("customer_id", "")),
+            amount=float(p.get("amount", 0.0)),
+            status=str(p.get("status", "")),
+        )
+        for p in get_unpaid_payments()
+    ]
 
 
 def mark_payment_paid(payment_id: str) -> bool:
@@ -79,8 +107,10 @@ def mark_payment_paid(payment_id: str) -> bool:
 
 if __name__ == "__main__":
 
-    p = add_payment("test_customer", 100.0)
-    print("Added payment:", p)
-    print("Unpaid payments:", get_unpaid_payments())
+    # p = add_payment("test_customer", 100.0)
+    # print("Added payment:", p)
+    # print("Unpaid payments:", get_unpaid_payments())
+
+    print(_load_payments())
 
 
