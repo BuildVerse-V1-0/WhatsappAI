@@ -1,0 +1,12 @@
+[
+    {
+        "customer_id": 1,
+        "name": "Rahul Sharma",
+        "phone": "9876543210"
+    },
+    {
+        "customer_id": 2,
+        "name": "Anita Verma",
+        "phone": "9123456789"
+    }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "payment_id": "demo-1",
+    "customer_id": "cust_001",
+    "amount": 150.0,
+    "status": "unpaid"
+  },
+  {
+    "payment_id": "demo-2",
+    "customer_id": "cust_002",
+    "amount": 200.0,
+    "status": "paid"
+  },
+  {
+    "payment_id": "demo-3",
+    "customer_id": "cust_003",
+    "amount": 75.5,
+    "status": "unpaid"
+  },
+  {
+    "payment_id": "demo-4",
+    "customer_id": "cust_001",
+    "amount": 300.0,
+    "status": "paid"
+  },
+  {
+    "payment_id": "demo-5",
+    "customer_id": "cust_004",
+    "amount": 500.0,
+    "status": "unpaid"
+  },
+  {
+    "payment_id": "ff27bfcd-caa3-4175-8432-fb20cd7745d0",
+    "customer_id": "test_customer",
+    "amount": 100.0,
+    "status": "paid"
+  },
+  {
+    "payment_id": "52211cc0-5cd7-4cff-97ea-423c4fcdc6d2",
+    "customer_id": "test_customer",
+    "amount": 100.0,
+    "status": "unpaid"
+  }
+]
