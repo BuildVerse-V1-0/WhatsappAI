@@ -1,9 +1,22 @@
-from tagging import CustomerTag
-import data
+from pathlib import Path
+import sys
+from typing import Dict, Iterable, List, Set, Tuple
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+try:
+    from .tagging import CustomerTag
+except ImportError:
+    from tagging import CustomerTag
+from common.models import Customer
 
 class SegmentationService:
     @staticmethod
-    def segment_customers(tagged_customers):
+    def segment_customers(
+        tagged_customers: Iterable[Tuple[Customer, Set[CustomerTag]]],
+    ) -> Dict[str, List[str]]:
         """
         Groups customers into buckets for WhatsApp broadcasts.
         Input: List of tuples [(Customer, {Tags})]
@@ -26,15 +39,19 @@ class SegmentationService:
                 segments["welcome_list"].append(customer.phone)
                 
         return segments
-    
-# Example usage
-tagged_customers = [
-    (data.Customer(1, "Rahul", "919876543210"), {CustomerTag.REPEAT_CUSTOMER, CustomerTag.UNPAID_CUSTOMER}),
-    (data.Customer(2, "Priya", "919876543211"), {CustomerTag.NEW_CUSTOMER}),
-    (data.Customer(3, "Amit", "919876543212"), {CustomerTag.REPEAT_CUSTOMER})
-]
-segmentation_service = SegmentationService()
-segments = segmentation_service.segment_customers(tagged_customers)
-print("Segments for WhatsApp Broadcasts:")
-for segment, phones in segments.items():
-    print(f"{segment}: {phones}")
+
+
+if __name__ == "__main__":
+    tagged_customers = [
+        (
+            Customer("1", "Rahul", "919876543210"),
+            {CustomerTag.REPEAT_CUSTOMER, CustomerTag.UNPAID_CUSTOMER},
+        ),
+        (Customer("2", "Priya", "919876543211"), {CustomerTag.NEW_CUSTOMER}),
+        (Customer("3", "Amit", "919876543212"), {CustomerTag.REPEAT_CUSTOMER}),
+    ]
+    segmentation_service = SegmentationService()
+    segments = segmentation_service.segment_customers(tagged_customers)
+    print("Segments for WhatsApp Broadcasts:")
+    for segment, phones in segments.items():
+        print(f"{segment}: {phones}")

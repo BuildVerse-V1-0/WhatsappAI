@@ -1,15 +1,9 @@
-from dataclasses import dataclass
-from typing import List
+from pathlib import Path
+import sys
 
-@dataclass
-class Payment:
-    payment_id: int
-    customer_id: int
-    amount: float
-    status: str  # "paid" or "unpaid" (Matches Monarch's task)
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
-@dataclass
-class Customer:
-    customer_id: int
-    name: str
-    phone: str
+# Backward-compatible re-exports for older imports.
+from common.models import Customer, Payment
