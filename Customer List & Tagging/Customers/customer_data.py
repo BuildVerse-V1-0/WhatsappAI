@@ -1,22 +1,34 @@
 import json
-import os
+from pathlib import Path
+import sys
+from typing import Dict, List, Optional
 
-DATA_FILE = "customers.json"
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from common.models import Customer
+
+DATA_FILE = Path(__file__).resolve().parent / "customers.json"
 
 
-def _load_data():
-    if not os.path.exists(DATA_FILE):
+def _load_data() -> List[Dict]:
+    if not DATA_FILE.exists():
         return []
-    with open(DATA_FILE, "r") as f:
+    with DATA_FILE.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def _save_data(customers):
-    with open(DATA_FILE, "w") as f:
+def _save_data(customers: List[Dict]) -> None:
+    with DATA_FILE.open("w", encoding="utf-8") as f:
         json.dump(customers, f, indent=4)
 
 
-def add_customer(name, phone):
+def _normalize_customer_id(customer_id) -> str:
+    return str(customer_id)
+
+
+def add_customer(name: str, phone: str) -> Optional[Dict]:
     customers = _load_data()
 
     # Duplicate phone check
@@ -25,7 +37,7 @@ def add_customer(name, phone):
             print("Customer with this phone already exists")
             return None
 
-    customer_id = len(customers) + 1
+    customer_id = str(len(customers) + 1)
     customer = {
         "customer_id": customer_id,
         "name": name,
@@ -38,21 +50,25 @@ def add_customer(name, phone):
     return customer
 
 
-def get_customer(customer_id):
+def get_customer(customer_id) -> Optional[Dict]:
     customers = _load_data()
+    target_id = _normalize_customer_id(customer_id)
     for c in customers:
-        if c["customer_id"] == customer_id:
+        if _normalize_customer_id(c.get("customer_id")) == target_id:
             return c
     return None
 
 
-def list_customers():
+def list_customers() -> List[Dict]:
     return _load_data()
 
 
-def delete_customer(customer_id):
+def delete_customer(customer_id) -> bool:
     customers = _load_data()
-    updated = [c for c in customers if c["customer_id"] != customer_id]
+    target_id = _normalize_customer_id(customer_id)
+    updated = [
+        c for c in customers if _normalize_customer_id(c.get("customer_id")) != target_id
+    ]
 
     if len(updated) == len(customers):
         print("Customer not found")
@@ -61,3 +77,14 @@ def delete_customer(customer_id):
     _save_data(updated)
     print(f"Customer {customer_id} deleted")
     return True
+
+
+def list_customer_models() -> List[Customer]:
+    return [
+        Customer(
+            customer_id=_normalize_customer_id(c.get("customer_id")),
+            name=str(c.get("name", "")),
+            phone=str(c.get("phone", "")),
+        )
+        for c in _load_data()
+    ]
