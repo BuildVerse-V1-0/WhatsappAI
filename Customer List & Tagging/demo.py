@@ -36,6 +36,9 @@ def run_demo() -> None:
         anita = customer_data.add_customer("Anita Verma", "9123456789")
         meera = customer_data.add_customer("Meera Iyer", "9000000001")
 
+        if rahul is None or anita is None or meera is None:
+            raise RuntimeError("Demo setup failed while creating customers")
+
         # 2) Create demo payments.
         payment_data.add_payment(rahul["customer_id"], 500.0)
         payment_data.add_payment(rahul["customer_id"], 300.0)
