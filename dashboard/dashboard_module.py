@@ -47,66 +47,86 @@ class DashboardModule:
             logger.error(f"Error fetching data from Supabase: {e}")
             return [], []
 
-    def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
-        """Processes customer and payment data to generate key metrics."""
-        total_customers = len(customers)
-        if total_customers == 0:
-            return self._empty_summary()
+from segmentation import SegmentationService
+from tagging import CustomerTag
 
-        # Structure for processing customer behavior based on payments
-        customer_payments = {}
-        total_pending_amount = 0.0
-        customers_with_pending = set()
+class SimpleCustomer:
+    def __init__(self, customer_id, name, phone):
+        self.customer_id = customer_id
+        self.name = name
+        self.phone = phone
 
-        for payment in payments:
-            cid = payment.get("customer_id")
-            amount = float(payment.get("amount", 0))
-            status = payment.get("status", "").lower()
 
-            if cid not in customer_payments:
-                customer_payments[cid] = {"count": 0, "total_paid": 0.0, "pending_amount": 0.0}
+def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
+    """Uses segmentation logic instead of duplicate logic."""
 
-            customer_payments[cid]["count"] += 1
+    total_customers = len(customers)
+    if total_customers == 0:
+        return self._empty_summary()
+    customer_payments = {}
+    total_pending_amount = 0.0
 
-            if status == "unpaid":
-                customer_payments[cid]["pending_amount"] += amount
-                total_pending_amount += amount
-                customers_with_pending.add(cid)
-            elif status == "paid":
-                customer_payments[cid]["total_paid"] += amount
+    for payment in payments:
+        cid = payment.get("customer_id")
+        amount = float(payment.get("amount", 0))
+        status = payment.get("status", "").lower()
 
-        repeat_customers = 0
-        new_customers = 0
-        inactive_customers = 0
+        if cid not in customer_payments:
+            customer_payments[cid] = []
 
-        # Segmenting customers based on logic
-        for customer in customers:
-            cid = customer.get("customer_id")
-            stats = customer_payments.get(cid)
+        customer_payments[cid].append(payment)
 
-            if not stats:
-                # No payments -> Inactive
-                inactive_customers += 1
-            elif stats["count"] == 1:
-                # 1 payment -> New Customer
-                new_customers += 1
-            elif stats["count"] > 1:
-                # >1 payments -> Repeat Customer
-                repeat_customers += 1
+        if status == "unpaid":
+            total_pending_amount += amount
 
-        repeat_percentage = (repeat_customers / total_customers * 100) if total_customers > 0 else 0
+    
+    tagged_customers = []
 
-        summary = {
-            "total_customers": total_customers,
-            "repeat_customers": repeat_customers,
-            "new_customers": new_customers,
-            "pending_payments": len(customers_with_pending),
-            "inactive_customers": inactive_customers,
-            "repeat_percentage": f"{repeat_percentage:.1f}%",
-            "total_pending_amount": total_pending_amount
-        }
+    for customer in customers:
+        cid = customer.get("customer_id")
+        phone = customer.get("phone", "")
+        name = customer.get("name", "")
 
-        return summary
+        cust_obj = SimpleCustomer(cid, name, phone)
+        payments_list = customer_payments.get(cid, [])
+
+        tags = set()
+
+        if len(payments_list) == 0:
+            tags.add(CustomerTag.NEW_CUSTOMER)
+
+        if len(payments_list) > 1:
+            tags.add(CustomerTag.REPEAT_CUSTOMER)
+
+        if any(p.get("status") == "unpaid" for p in payments_list):
+            tags.add(CustomerTag.UNPAID_CUSTOMER)
+
+        if len(payments_list) == 0:
+            tags.add(CustomerTag.INACTIVE_CUSTOMER)
+
+        tagged_customers.append((cust_obj, tags))
+
+    
+    segmentation_service = SegmentationService()
+    segments = segmentation_service.segment_customers(tagged_customers)
+
+    
+    repeat_customers = len(segments["loyalty_list"])
+    new_customers = len(segments["welcome_list"])
+    pending_customers = len(segments["to_remind_payment"])
+    inactive_customers = len(segments["inactive_list"])
+
+    repeat_percentage = (repeat_customers / total_customers * 100) if total_customers else 0
+
+    return {
+        "total_customers": total_customers,
+        "repeat_customers": repeat_customers,
+        "new_customers": new_customers,
+        "pending_payments": pending_customers,
+        "inactive_customers": inactive_customers,
+        "repeat_percentage": f"{repeat_percentage:.1f}%",
+        "total_pending_amount": total_pending_amount
+    }
 
     def generate_json_report(self, output_file: str = "customer_summary.json") -> Dict[str, Any]:
         """Fetches data, calculates summary, and exports to a JSON file."""
