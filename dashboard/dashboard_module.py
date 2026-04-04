@@ -170,16 +170,6 @@ class DashboardModule:
 if __name__ == "__main__":
     dashboard = DashboardModule()
 
-    # NOTE: To test with REAL data, uncomment the following lines and set your `.env` variables
-    # metrics = dashboard.generate_json_report()
-    # print(json.dumps(metrics, indent=4))
-    
-    # image_url = dashboard.upload_shop_image("shop.jpg")
-    # print(f"Uploaded Image URL: {image_url}")
-
-    # ===============================
-    # Example Output with Mock Data
-    # ===============================
     print("--- Running Example Output with Mock Data ---")
     mock_customers = [
         {"customer_id": 1, "name": "Alice"},
