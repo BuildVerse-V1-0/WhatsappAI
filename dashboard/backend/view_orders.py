@@ -115,7 +115,7 @@ def get_payments(
 			detail=f"Failed to fetch payments from Supabase: {exc}",
 		) from exc
 
-
+#Test Command: curl -X POST "http://127.0.0.1:8000/business-link" -H "Content-Type: application/json" -d "{\"tenant_id\":\"urbanwear\",\"google_business_id\":\"123456789012345\"}"
 @app.post("/business-link")
 def store_business_link(request: BusinessLinkRequest) -> JSONResponse:
 	"""Store or update the Google Business link for a tenant."""
