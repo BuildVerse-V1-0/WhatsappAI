@@ -155,7 +155,7 @@ def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
         file_name = os.path.basename(file_path)
         try:
             with open(file_path, "rb") as f:
-                # Using standard file upload for Supabase Storage
+                
                 content_type = "image/jpeg" if file_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
                 res = self.supabase.storage.from_(bucket_name).upload(
                     file_name, 
@@ -163,7 +163,7 @@ def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
                     {"content-type": content_type}
                 )
             
-            # Fetch and return public URL after a successful upload
+           
             public_url = self.supabase.storage.from_(bucket_name).get_public_url(file_name)
             logger.info(f"Image uploaded successfully. Public URL: {public_url}")
             return public_url
@@ -184,9 +184,7 @@ def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
             "total_pending_amount": 0.0
         }
 
-# =========================================================
-# Testing the Module (Mock Data vs Real Supabase)
-# =========================================================
+
 if __name__ == "__main__":
     dashboard = DashboardModule()
 
