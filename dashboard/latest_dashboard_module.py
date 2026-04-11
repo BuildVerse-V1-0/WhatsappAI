@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, Tuple, Optional
 from dotenv import load_dotenv
 
-# ─── Logging ──────────────────────────────────────────────────────────────────
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ from segmentation import SegmentationService
 from tagging import CustomerTag
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 class SimpleCustomer:
     """Lightweight customer object consumed by SegmentationService."""
@@ -32,12 +32,8 @@ def _cents_to_currency(cents: int) -> float:
     return round(cents / 100, 2)
 
 
-# ─── Tag resolution ───────────────────────────────────────────────────────────
-# app_customers.tag stores a single primary tag written by the tagging module.
-# We map those stored strings to CustomerTag members so we can reuse
-# SegmentationService without touching its internals.
 
-_TAG_MAP: Dict[str, "CustomerTag"] = {}   # populated lazily after import
+_TAG_MAP: Dict[str, "CustomerTag"] = {}  
 
 
 def _resolve_stored_tag(raw_tag: Optional[str]) -> Optional["CustomerTag"]:
@@ -45,26 +41,21 @@ def _resolve_stored_tag(raw_tag: Optional[str]) -> Optional["CustomerTag"]:
     if not raw_tag:
         return None
     if not _TAG_MAP:
-        # Build the map once from the enum itself so it stays in sync.
+        
         for member in CustomerTag:
             _TAG_MAP[member.value.lower()] = member
             _TAG_MAP[member.name.lower()] = member
     return _TAG_MAP.get(raw_tag.strip().lower())
 
 
-# ─── DashboardModule ──────────────────────────────────────────────────────────
+
 
 class DashboardModule:
     """
-    Customer Summary Dashboard Module
-    ----------------------------------
     Connects to the production Supabase schema:
         • app_customers  — customer master with pre-computed tag / total_orders
         • app_payments   — payment ledger (amounts stored in cents)
         • app_tenants    — business metadata
-
-    All queries are scoped to a single tenant_id so the dashboard is safe
-    for multi-tenant deployments.
     """
 
     def __init__(
@@ -76,7 +67,7 @@ class DashboardModule:
         load_dotenv()
         self.url = supabase_url or os.environ.get("SUPABASE_URL")
         self.key = supabase_key or os.environ.get("SUPABASE_KEY")
-        # tenant_id scopes every query; falls back to TENANT_ID env var.
+        
         self.tenant_id: Optional[str] = tenant_id or os.environ.get("TENANT_ID")
 
         if not self.url or not self.key:
@@ -99,7 +90,7 @@ class DashboardModule:
                 "this is unsafe in production. Set TENANT_ID in .env."
             )
 
-    # ── Internal: scoped query builder ────────────────────────────────────────
+   
 
     def _scoped(self, table: str, columns: str = "*"):
         """
@@ -111,7 +102,7 @@ class DashboardModule:
             q = q.eq("tenant_id", self.tenant_id)
         return q
 
-    # ── Public: fetch ──────────────────────────────────────────────────────────
+
 
     def fetch_data(self) -> Tuple[list, list]:
         """
@@ -172,7 +163,7 @@ class DashboardModule:
             logger.error(f"Error fetching tenant info: {e}")
             return {}
 
-    # ── Public: calculate ─────────────────────────────────────────────────────
+
 
     def calculate_summary(self, customers: list, payments: list) -> Dict[str, Any]:
         """
@@ -193,13 +184,13 @@ class DashboardModule:
         if total_customers == 0:
             return self._empty_summary()
 
-        # ── Step 1: index payments ─────────────────────────────────────────
+
         customer_payments: Dict[str, list] = {}
         total_pending_amount = 0.0
 
         for payment in payments:
             cid = payment.get("customer_id")
-            # amount_cents → ₹  (app_payments stores paise)
+           
             amount_rupees = _cents_to_currency(int(payment.get("amount_cents", 0)))
             status = payment.get("status", "").lower()
 
@@ -208,7 +199,7 @@ class DashboardModule:
             if status == "unpaid":
                 total_pending_amount += amount_rupees
 
-        # ── Step 2: build tagged_customers list ────────────────────────────
+       
         tagged_customers = []
 
         for customer in customers:
@@ -225,10 +216,10 @@ class DashboardModule:
             stored_tag = _resolve_stored_tag(raw_tag)
 
             if stored_tag:
-                # Trust the pre-computed tag from the tagging module.
+            
                 tags.add(stored_tag)
             else:
-                # Fallback: derive from payment history + total_orders.
+              
                 if total_orders == 0 and len(payments_list) == 0:
                     tags.add(CustomerTag.NEW_CUSTOMER)
                     tags.add(CustomerTag.INACTIVE_CUSTOMER)
@@ -239,7 +230,7 @@ class DashboardModule:
 
             tagged_customers.append((cust_obj, tags))
 
-        # ── Step 3: segment ────────────────────────────────────────────────
+      
         segmentation_service = SegmentationService()
         segments = segmentation_service.segment_customers(tagged_customers)
 
@@ -259,7 +250,7 @@ class DashboardModule:
             "total_pending_amount": round(total_pending_amount, 2),
         }
 
-    # ── Public: generate report ────────────────────────────────────────────────
+  
 
     def generate_json_report(self, output_file: str = "customer_summary.json") -> Dict[str, Any]:
         """Fetches live data, calculates summary, and exports to a JSON file."""
@@ -275,7 +266,7 @@ class DashboardModule:
 
         return summary
 
-    # ── Public: upload image ───────────────────────────────────────────────────
+
 
     def upload_shop_image(
         self,
@@ -310,7 +301,7 @@ class DashboardModule:
         }
         content_type = content_type_map.get(ext, "application/octet-stream")
 
-        # Namespace uploads by tenant so different businesses don't collide.
+     
         storage_path = f"{self.tenant_id}/{file_name}" if self.tenant_id else file_name
 
         try:
@@ -329,7 +320,7 @@ class DashboardModule:
             logger.error(f"Error uploading image to Supabase Storage: {e}")
             return ""
 
-    # ── Private ────────────────────────────────────────────────────────────────
+
 
     def _empty_summary(self) -> Dict[str, Any]:
         return {
@@ -343,14 +334,14 @@ class DashboardModule:
         }
 
 
-# ─── CLI / smoke-test ─────────────────────────────────────────────────────────
+
 
 if __name__ == "__main__":
     dashboard = DashboardModule()
 
     print("--- Running Example Output with Mock Data (app schema) ---")
 
-    # Mock rows match the app_customers / app_payments column names.
+
     mock_customers = [
         {"customer_id": "c1", "name": "Alice",   "phone": "919876543210", "tag": "repeat_customer",  "total_orders": 3, "total_spent_cents": 150000},
         {"customer_id": "c2", "name": "Bob",     "phone": "919876543211", "tag": "new_customer",     "total_orders": 0, "total_spent_cents": 0},
