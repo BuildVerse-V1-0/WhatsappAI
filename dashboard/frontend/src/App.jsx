@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -46,11 +46,46 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [payments, setPayments] = useState([]);
   const [googleBusinessId, setGoogleBusinessId] = useState('');
+  const [serverStatus, setServerStatus] = useState('Checking API health...');
   const [status, setStatus] = useState('Idle');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingPayments, setLoadingPayments] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkHealth() {
+      try {
+        const data = await requestJson('/health');
+
+        if (cancelled) {
+          return;
+        }
+
+        const supabaseStatus = data?.supabase?.status;
+        const apiMessage = data?.status || 'ok';
+        setServerStatus(
+          supabaseStatus === 'connected'
+            ? `API online, Supabase connected (${apiMessage})`
+            : `API online, Supabase status: ${supabaseStatus || 'unknown'}`
+        );
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
+        setServerStatus(`API offline: ${err.message}`);
+      }
+    }
+
+    checkHealth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const orderCount = orders.length;
   const paymentCount = payments.length;
@@ -142,6 +177,7 @@ export default function App() {
         <div className="status-card">
           <span className="status-label">API</span>
           <strong>{API_BASE_URL}</strong>
+          <span className="status-muted">{serverStatus}</span>
           <span className="status-muted">{status}</span>
           {error ? <span className="status-error">{error}</span> : null}
         </div>
