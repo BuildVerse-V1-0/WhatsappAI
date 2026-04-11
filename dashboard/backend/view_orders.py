@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from supabase import Client, create_client
 
 
@@ -14,6 +15,14 @@ app = FastAPI(
 	title="Orders API",
 	description="Fetch order data from Supabase",
 	version="1.0.0",
+)
+
+app.add_middleware(
+	CORSMiddleware,
+	allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+	allow_credentials=True,
+	allow_methods=["*"],
+	allow_headers=["*"],
 )
 
 
@@ -44,8 +53,57 @@ def get_supabase_client() -> Client:
 
 
 @app.get("/health")
-def health_check() -> Dict[str, str]:
-    return {"status": "ok"}
+def health_check() -> JSONResponse:
+	"""Single health endpoint for API and Supabase connectivity."""
+	content: Dict[str, Any] = {
+		"success": True,
+		"status": "ok",
+		"api": "up",
+		"supabase": {
+			"status": "unknown",
+			"message": "Not checked",
+		},
+	}
+
+	status_code = 200
+
+	try:
+		supabase = get_supabase_client()
+		query_result = (
+			supabase
+			.schema("public")
+			.table("orders")
+			.select("order_id")
+			.limit(1)
+			.execute()
+		)
+		content["supabase"] = {
+			"status": "connected",
+			"message": "Supabase connection successful",
+			"checked_table": "public.orders",
+			"sample_count": len(query_result.data or []),
+		}
+	except HTTPException as exc:
+		status_code = 500
+		content["success"] = False
+		content["status"] = "degraded"
+		content["supabase"] = {
+			"status": "misconfigured",
+			"message": "Supabase environment variables are missing or invalid",
+			"detail": str(exc.detail),
+		}
+	except Exception as exc:
+		status_code = 503
+		content["success"] = False
+		content["status"] = "degraded"
+		content["supabase"] = {
+			"status": "unreachable",
+			"message": "Failed to connect to Supabase",
+			"detail": str(exc),
+		}
+
+	return JSONResponse(status_code=status_code, content=content)
+
 
 
 @app.get("/orders")
