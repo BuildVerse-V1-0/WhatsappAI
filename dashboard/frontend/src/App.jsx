@@ -87,6 +87,26 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const trimmedTenantId = tenantId.trim();
+
+    if (!trimmedTenantId) {
+      setOrders([]);
+      setPayments([]);
+      setStatus('Idle');
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      loadOrders(trimmedTenantId);
+      loadPayments(trimmedTenantId);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [tenantId]);
+
   const orderCount = orders.length;
   const paymentCount = payments.length;
 
@@ -94,13 +114,14 @@ export default function App() {
     return tenantId.trim() || 'All tenants';
   }, [tenantId]);
 
-  async function loadOrders() {
+  async function loadOrders(tenantOverride = tenantId.trim()) {
     setError('');
     setLoadingOrders(true);
-    setStatus(`Loading orders for ${tenantSummary}...`);
+    const tenantLabel = tenantOverride || 'All tenants';
+    setStatus(`Loading orders for ${tenantLabel}...`);
 
     try {
-      const query = tenantId.trim() ? `?tenant_id=${encodeURIComponent(tenantId.trim())}` : '';
+      const query = tenantOverride ? `?tenant_id=${encodeURIComponent(tenantOverride)}` : '';
       const data = await requestJson(`/orders${query}`);
       setOrders(Array.isArray(data.orders) ? data.orders : []);
       setStatus(`Loaded ${data.count ?? data.orders?.length ?? 0} orders`);
@@ -112,13 +133,14 @@ export default function App() {
     }
   }
 
-  async function loadPayments() {
+  async function loadPayments(tenantOverride = tenantId.trim()) {
     setError('');
     setLoadingPayments(true);
-    setStatus(`Loading payments for ${tenantSummary}...`);
+    const tenantLabel = tenantOverride || 'All tenants';
+    setStatus(`Loading payments for ${tenantLabel}...`);
 
     try {
-      const query = tenantId.trim() ? `?tenant_id=${encodeURIComponent(tenantId.trim())}` : '';
+      const query = tenantOverride ? `?tenant_id=${encodeURIComponent(tenantOverride)}` : '';
       const data = await requestJson(`/payments${query}`);
       setPayments(Array.isArray(data.payments) ? data.payments : []);
       setStatus(`Loaded ${data.count ?? data.payments?.length ?? 0} payments`);
@@ -194,7 +216,7 @@ export default function App() {
               placeholder="urbanwear"
             />
           </label>
-          <p className="hint">Leave blank to fetch all orders and payments visible to the backend API.</p>
+          <p className="hint">Type a tenant ID to auto-load orders and payments. Leave blank to clear current results.</p>
         </article>
 
         <article className="panel">
